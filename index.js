@@ -2,8 +2,9 @@ require("dotenv").config();
 // Импортируем модуль Telegram API
 const TelegramBot = require("node-telegram-bot-api");
 
-// Токен Telegram-бота
+
 const BOT_TOKEN = process.env.BOT_TOKEN; // Укажите ваш токен
+const GROUP_CHAT_ID = process.env.GROUP_CHAT_ID; // Укажите ID вашей группы
 
 // ID группы, куда будут пересылаться данные
 <<<<<<< HEAD

@@ -140,7 +140,6 @@ async function handleAgeState(chatId, age) {
         cleanupUserData(chatId);
         return;
     }
-    userData[chatId].age = age;
     userStates[chatId] = 'WAITING_CITIZENSHIP';
     await bot.sendMessage(chatId, 'Какое у тебя гражданство?', keyboards.citizenship);
 }
@@ -153,8 +152,25 @@ async function handleCitizenshipState(chatId, citizenship) {
 
 async function handleBikeState(chatId, bike) {
     userData[chatId].canRideBike = bike;
-    userStates[chatId] = 'WAITING_WEIGHT';
-    await bot.sendMessage(chatId, 'Иногда заказ, который везёт курьер, может весить 15-20 кг. Справишься? 🏋️', keyboards.weight);
+    if (bike === 'Да') {
+        userStates[chatId] = 'WAITING_WEIGHT';
+        await bot.sendMessage(chatId, 'Иногда заказ, который везёт курьер, может весить 15-20 кг. Справишься? 🏋️', keyboards.weight);
+    } else {
+        userStates[chatId] = 'WAITING_WEIGHT';
+        await bot.sendMessage(chatId, 'Иногда есть потребность в пеших курьерах. Если тебе это интересно, продолжим. ✅', keyboards.weight);
+    }
+}
+
+async function handleWeightState(chatId, weightResponse) {
+    if (weightResponse === 'Конечно') {
+        userStates[chatId] = 'WAITING_PHONE';  // Переход к следующему этапу
+        await bot.sendMessage(chatId, 'Отлично! Теперь оставь свой номер телефона, чтобы HR-менеджер мог связаться с тобой. 📞', keyboards.remove);
+    } else if (weightResponse === 'Не думаю') {
+        await bot.sendMessage(chatId, 'Такие тяжёлые заказы — редкое явление. В основном, не более 10% от общего числа. Однако все курьеры-партнёры периодически их доставляют.\n\nЕсли будешь готов, мы можем всегда начать сначала.', keyboards.back);
+        cleanupUserData(chatId);  // Очищаем данные и возвращаемся в начало
+        userStates[chatId] = 'START';  // Возвращаемся в начальное состояние
+        await bot.sendMessage(chatId, messages.start, keyboards.start);
+    }
 }
 
 async function handlePhoneState(chatId, phone) {

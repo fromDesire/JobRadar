@@ -1,4 +1,3 @@
-
 require("dotenv").config();
 const TelegramBot = require("node-telegram-bot-api");
 const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -175,6 +174,7 @@ async function handleWeightState(chatId, weightResponse) {
         await bot.sendMessage(chatId, messages.start, keyboards.start);
     }
 }
+
 async function handleWalkCourierState(chatId, walkCourierResponse) {
     if (walkCourierResponse === 'Продолжим') {
         // Если пользователь согласился быть пешим курьером, спрашиваем о тяжёлых заказах
@@ -188,8 +188,6 @@ async function handleWalkCourierState(chatId, walkCourierResponse) {
         await bot.sendMessage(chatId, messages.start, keyboards.start);
     }
 }
-
-
 
 async function handlePhoneState(chatId, phone) {
     userData[chatId].phone = phone;

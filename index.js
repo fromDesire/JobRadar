@@ -1,54 +1,3 @@
-require("dotenv").config();
-const TelegramBot = require("node-telegram-bot-api");
-const BOT_TOKEN = process.env.BOT_TOKEN;
-const GROUP_CHAT_ID = process.env.GROUP_CHAT_ID;
-
-const bot = new TelegramBot(BOT_TOKEN, { polling: true });
-
-// Временное хранение состояния пользователей в памяти
-const userStates = {};
-const userData = {};
-const userTimers = {};
-
-// Константа времени ожидания (2 часа в миллисекундах)
-const TIMEOUT_DURATION = 2 * 60 * 60 * 1000;
-
-// Функция для очистки данных пользователя
-function cleanupUserData(chatId) {
-    delete userStates[chatId];
-    delete userData[chatId];
-    if (userTimers[chatId]) {
-        clearTimeout(userTimers[chatId]);
-        delete userTimers[chatId];
-    }
-}
-
-// Функция для установки таймера неактивности
-function setInactivityTimer(chatId) {
-    if (userTimers[chatId]) {
-        clearTimeout(userTimers[chatId]);
-    }
-
-    userTimers[chatId] = setTimeout(async () => {
-        if (userStates[chatId]) {
-            await bot.sendMessage(chatId,
-                'Продолжим заполнение анкеты?',
-                {
-                    reply_markup: {
-                        keyboard: [
-                            ['Продолжим'],
-                            ['Вернуться в начало ↩️']
-                        ],
-                        resize_keyboard: true
-                    }
-                }
-            );
-            // Очищаем данные после таймаута
-            cleanupUserData(chatId);
-        }
-    }, TIMEOUT_DURATION);
-}
-
 const keyboards = {
     start: {
         reply_markup: {
@@ -146,7 +95,7 @@ bot.onText(/\/start/, async (msg) => {
     await bot.sendMessage(chatId, messages.start, keyboards.start);
 });
 
-// Основной обработчик сообщений
+// Обработчик сообщений
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text;
@@ -177,7 +126,7 @@ bot.on('message', async (msg) => {
     }
 });
 
-// Обработчики состояний
+// Обработчик начала анкеты
 async function handleStartState(chatId, text) {
     switch (text) {
         case 'Продолжим':
@@ -185,7 +134,15 @@ async function handleStartState(chatId, text) {
             await bot.sendMessage(chatId, 'Как я могу к тебе обращаться?', keyboards.remove);
             break;
         case 'Хочу узнать подробнее':
-            await bot.sendMessage(chatId, messages.details, keyboards.continue);
+            await bot.sendMessage(chatId, messages.details, {
+                reply_markup: {
+                    keyboard: [
+                        ['Продолжим (В1)'],
+                        ['Вернуться в начало ↩️']
+                    ],
+                    resize_keyboard: true
+                }
+            });
             break;
         case 'Не хочу быть курьером':
             await bot.sendMessage(chatId, 'Спасибо за интерес! Если передумаешь, всегда можешь вернуться.', keyboards.back);
@@ -194,12 +151,14 @@ async function handleStartState(chatId, text) {
     }
 }
 
+// Обработчик имени
 async function handleNameState(chatId, name) {
     userData[chatId].name = name;
     userStates[chatId] = 'WAITING_AGE';
     await bot.sendMessage(chatId, `Сколько тебе лет, ${name}?`, keyboards.remove);
 }
 
+// Обработчик возраста
 async function handleAgeState(chatId, age) {
     const ageNum = parseInt(age);
     if (isNaN(ageNum)) {
@@ -218,12 +177,14 @@ async function handleAgeState(chatId, age) {
     await bot.sendMessage(chatId, 'Какое у тебя гражданство?', keyboards.citizenship);
 }
 
+// Обработчик гражданства
 async function handleCitizenshipState(chatId, citizenship) {
     userData[chatId].citizenship = citizenship;
     userStates[chatId] = 'WAITING_BIKE';
     await bot.sendMessage(chatId, 'Умеешь кататься на велосипеде? 🚴', keyboards.bike);
 }
 
+// Обработчик велосипеда
 async function handleBikeState(chatId, canRideBike) {
     userData[chatId].canRideBike = canRideBike;
 
@@ -236,6 +197,7 @@ async function handleBikeState(chatId, canRideBike) {
     await bot.sendMessage(chatId, 'Иногда заказ, который везёт курьер, может весить 15-20 кг. Справишься? 🏋️', keyboards.weight);
 }
 
+// Обработчик веса
 async function handleWeightState(chatId, canCarryWeight) {
     userData[chatId].canCarryWeight = canCarryWeight;
 
@@ -256,7 +218,7 @@ async function handleWeightState(chatId, canCarryWeight) {
     );
 }
 
-
+// Обработчик телефона
 async function handlePhoneState(chatId, phone) {
     userData[chatId].phone = phone;
 

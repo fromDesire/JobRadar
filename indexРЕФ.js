@@ -36,13 +36,13 @@ function setInactivityTimer(chatId) {
 const keyboards = {
     start: {
         reply_markup: {
-            keyboard: [['Продолжим'], ['Хочу узнать подробнее'], ['Не хочу быть курьером']],
+            keyboard: [['К заполнению анкеты'], ['Хочу узнать подробнее'], ['Не хочу быть курьером']],
             resize_keyboard: true
         }
     },
     details: {
         reply_markup: {
-            keyboard: [['Продолжим'], ['Не хочу быть курьером']],
+            keyboard: [['К заполнению анкеты'], ['Не хочу быть курьером']],
             resize_keyboard: true
         }
     },
@@ -61,17 +61,17 @@ const keyboards = {
     weight: {
         reply_markup: { keyboard: [['Справлюсь'], ['Не думаю']], resize_keyboard: true }
     },
-    continue: {
-        reply_markup: { keyboard: [['Продолжим'], ['Вернуться в начало ↩️']], resize_keyboard: true }
+    walkCourier: {
+        reply_markup: { keyboard: [['Продолжим'], ['Не думаю']], resize_keyboard: true }
     },
-    remove: {
+    phone: {
         reply_markup: { remove_keyboard: true }
     }
 };
 
 const messages = {
     start: 'Перед тем, как продолжить, заполни небольшую анкету. 📄\n\nЭто займёт всего пару минут и поможет мне понять, подходит ли тебе позиция курьера-партнёра. 🚴\n\nХочешь стать курьером или узнать подробнее?',
-    details: 'Студенты, специалисты, пенсионеры, гости из-за рубежа - курьером-партнёром Самоката может стать каждый, вне зависимости от того, каких целей он хочет достичь! 📈\n\nЧто мы предлагаем:\n💸 Гарантированный доход каждый час, даже если нет заказов.\n\n🏘 Центр формирования заказов в шаговой доступности от дома.\n\n🧭 Радиус доставок в пределах 1,5-3 км от центра формирования заказов.\n\n🚴 Бесплатную униформу, шлем и велосипед.\n\n📅 Абсолютную гибкость в выборе периодов для сотрудничества (доставлять заказы можно от 2-х часов в день).\n\n😌 Комфортные условия для отдыха и ожидания в центре формирования заказов.\n\n🧾 Отсутствие штрафов.\n\n✅ Оформление по самозанятости. Оплату налога Самокат берёт на себя и показывает тебе реальную сумму твоего дохода.\n\nОстались вопросы? - Ты сможешь задать их HR-менеджеру, который свяжется с тобой после того, как ты заполнишь анкету. 📄',
+    details: 'Студенты, специалисты, пенсионеры, гости из-за рубежа - курьером-партнёром Самоката может стать каждый, вне зависимости от того, каких целей он хочет достичь! 📈\n\nЧто мы предлагаем:\n💸 Гарантированный доход каждый час, даже если нет заказов.\n\n...',
     ageRestriction: 'К сожалению, курьером-партнёром Самоката можно стать только с 18 лет. 🥺\n\nБуду рад видеть тебя снова, когда станешь старше!',
     walkCourier: 'Иногда есть потребность в пеших курьерах. Если тебе это интересно, продолжим. ✅',
     weightWarning: 'Иногда заказ, который везёт курьер, может весить 15-20 кг. Справишься? 🏋️',
@@ -93,8 +93,7 @@ bot.on('message', async (msg) => {
 
     if (text === 'Вернуться в начало ↩️') {
         cleanupUserData(chatId);
-        userStates[chatId] = 'START';
-        await bot.sendMessage(chatId, messages.start, keyboards.start);
+        userStates[chatId] = 'ZERO'; // Новое состояние ZERO
         return;
     }
 
@@ -114,9 +113,9 @@ bot.on('message', async (msg) => {
 });
 
 async function handleStartState(chatId, text) {
-    if (text === 'Продолжим') {
+    if (text === 'К заполнению анкеты') {
         userStates[chatId] = 'WAITING_NAME';
-        await bot.sendMessage(chatId, 'Как я могу к тебе обращаться?', keyboards.remove);
+        await bot.sendMessage(chatId, 'Как я могу к тебе обращаться?', keyboards.phone);
     } else if (text === 'Хочу узнать подробнее') {
         await bot.sendMessage(chatId, messages.details, keyboards.details);
     } else if (text === 'Не хочу быть курьером') {
@@ -128,12 +127,12 @@ async function handleStartState(chatId, text) {
 async function handleNameState(chatId, name) {
     userData[chatId] = { name };
     userStates[chatId] = 'WAITING_AGE';
-    await bot.sendMessage(chatId, `Сколько тебе лет, ${name}?`, keyboards.remove);
+    await bot.sendMessage(chatId, `Сколько тебе лет, ${name}?`, keyboards.phone);
 }
 
 async function handleAgeState(chatId, age) {
     if (isNaN(parseInt(age))) {
-        await bot.sendMessage(chatId, 'Введите возраст цифрами.', keyboards.remove);
+        await bot.sendMessage(chatId, 'Введите возраст цифрами.', keyboards.phone);
         return;
     }
     if (parseInt(age) < 18) {
@@ -144,6 +143,7 @@ async function handleAgeState(chatId, age) {
     userStates[chatId] = 'WAITING_CITIZENSHIP';
     await bot.sendMessage(chatId, 'Какое у тебя гражданство?', keyboards.citizenship);
 }
+
 async function handleCitizenshipState(chatId, citizenship) {
     userData[chatId].citizenship = citizenship;
     userStates[chatId] = 'WAITING_BIKE';
@@ -153,44 +153,41 @@ async function handleCitizenshipState(chatId, citizenship) {
 async function handleBikeState(chatId, bike) {
     userData[chatId].canRideBike = bike;
     if (bike === 'Да') {
-        // Если пользователь умеет кататься на велосипеде, спрашиваем про вес заказов
         userStates[chatId] = 'WAITING_WEIGHT';
         await bot.sendMessage(chatId, 'Иногда заказ, который везёт курьер, может весить 15-20 кг. Справишься? 🏋️', keyboards.weight);
     } else {
-        // Если пользователь не умеет кататься на велосипеде, спрашиваем, хочет ли он стать пешим курьером
         userStates[chatId] = 'WAITING_WALK_COURIER';
-        await bot.sendMessage(chatId, 'Иногда есть потребность в пеших курьерах. Если тебе это интересно, продолжим. ✅', keyboards.weight);
+        await bot.sendMessage(chatId, 'Иногда есть потребность в пеших курьерах. Если тебе это интересно, продолжим. ✅', keyboards.walkCourier);
     }
 }
 
 async function handleWeightState(chatId, weightResponse) {
     if (weightResponse === 'Справлюсь') {
         userStates[chatId] = 'WAITING_PHONE';
-        await bot.sendMessage(chatId, messages.final, keyboards.remove);
+        await bot.sendMessage(chatId, messages.final, keyboards.phone);
     } else if (weightResponse === 'Не думаю') {
-        await bot.sendMessage(chatId, 'Такие тяжёлые заказы — редкое явление. Если это тебя беспокоит, мы можем это обсудить позже.', keyboards.remove);
+        await bot.sendMessage(chatId, 'Такие тяжёлые заказы - редкое явление. В основном, не более 10% от общего числа. Однако все курьеры-партнёры периодически их доставляют.');
+        userStates[chatId] = 'ZERO'; // Возврат к состоянию ZERO
     }
 }
 
 async function handleWalkCourierState(chatId, walkResponse) {
-    if (walkResponse === 'Справлюсь') {
-        // Если пользователь согласен стать пешим курьером, переходим к сбору телефона
-        userStates[chatId] = 'WAITING_PHONE';
-        await bot.sendMessage(chatId, messages.final, keyboards.remove);
+    if (walkResponse === 'Продолжим') {
+        userStates[chatId] = 'WAITING_WEIGHT';
+        await bot.sendMessage(chatId, 'Иногда заказ, который везёт курьер, может весить 15-20 кг. Справишься? 🏋️', keyboards.weight);
     } else {
-        // Если пользователь отказывается, возвращаем его к началу
-        await bot.sendMessage(chatId, 'Буду рад видеть тебя снова, если решишь стать курьером! 🙌', keyboards.back);
+        await bot.sendMessage(chatId, 'Буду рад видеть тебя снова, если решишь стать курьером!', keyboards.back);
         cleanupUserData(chatId);
     }
 }
 
 async function handlePhoneState(chatId, phone) {
-    userData[chatId].phone = phone;
-    await bot.sendMessage(chatId, 'Спасибо! Мы свяжемся с тобой для дальнейших инструкций. 📞', keyboards.remove);
-    cleanupUserData(chatId);
-}
+    const phoneRegex = /^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s./0-9]*$/;
+    if (!phoneRegex.test(phone)) {
+        await bot.sendMessage(chatId, 'Пожалуйста, введите корректный номер телефона.', keyboards.phone);
+        return;
+    }
 
-async function handlePhoneState(chatId, phone) {
     userData[chatId].phone = phone;
     const summary =
         `Новая заявка:\n
@@ -198,11 +195,10 @@ async function handlePhoneState(chatId, phone) {
         Возраст: ${userData[chatId].age}\n
         Гражданство: ${userData[chatId].citizenship}\n
         Велосипед: ${userData[chatId].canRideBike}\n
-        Вес заказов: ${userData[chatId].canCarryWeight}\n
         Телефон: ${userData[chatId].phone}\n
         Профиль: ${chatId}`;
 
     await bot.sendMessage(GROUP_CHAT_ID, summary);
-    await bot.sendMessage(chatId, messages.final, keyboards.back);
+    await bot.sendMessage(chatId, 'Спасибо! Мы свяжемся с тобой для дальнейших инструкций. 📞', keyboards.back);
     cleanupUserData(chatId);
 }

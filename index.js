@@ -175,10 +175,9 @@ async function handleWeightState(chatId, weightResponse) {
         await bot.sendMessage(chatId, messages.start, keyboards.start);
     }
 }
-
 async function handleWalkCourierState(chatId, walkCourierResponse) {
     if (walkCourierResponse === 'Продолжим') {
-        // Если пользователь соглашается быть пешим курьером, спрашиваем о тяжелых заказах
+        // Если пользователь соглашается быть пешим курьером, спрашиваем о тяжёлых заказах
         userStates[chatId] = 'WAITING_WEIGHT';
         await bot.sendMessage(chatId, 'Иногда заказ, который везёт курьер, может весить 15-20 кг. Справишься? 🏋️', keyboards.weight);
     } else {
@@ -189,6 +188,7 @@ async function handleWalkCourierState(chatId, walkCourierResponse) {
         await bot.sendMessage(chatId, messages.start, keyboards.start);
     }
 }
+
 
 
 async function handlePhoneState(chatId, phone) {

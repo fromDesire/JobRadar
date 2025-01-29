@@ -5,15 +5,12 @@ const GROUP_CHAT_ID = process.env.GROUP_CHAT_ID;
 
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
-// Временное хранение состояния пользователей в памяти
 const userStates = {};
 const userData = {};
 const userTimers = {};
 
-// Константа времени ожидания (2 часа в миллисекундах)
 const TIMEOUT_DURATION = 2 * 60 * 60 * 1000;
 
-// Функция для очистки данных пользователя
 function cleanupUserData(chatId) {
     delete userStates[chatId];
     delete userData[chatId];
@@ -23,7 +20,6 @@ function cleanupUserData(chatId) {
     }
 }
 
-// Функция для установки таймера неактивности
 function setInactivityTimer(chatId) {
     if (userTimers[chatId]) {
         clearTimeout(userTimers[chatId]);
@@ -94,7 +90,6 @@ const keyboards = {
     }
 };
 
-// Константы сообщений
 const messages = {
     start: 'Перед тем, как продолжить, заполни небольшую анкету. 📄\n\n' +
            'Это займёт всего пару минут и поможет мне понять, подходит ли тебе позиция курьера-партнёра. 🚴\n\n' +
@@ -140,37 +135,25 @@ bot.on('message', async (msg) => {
         'WAITING_PHONE': () => handlePhoneState(chatId, text)
     };
 
-    const handler = handlers[userStates[chatId]];
-    if (handler) {
-        await handler();
+    if (userStates[chatId] && handlers[userStates[chatId]]) {
+        await handlers[userStates[chatId]]();
     }
 });
 
-async function handleStartState(chatId, text) {
-    switch (text) {
-        case 'Продолжим':
-            userStates[chatId] = 'WAITING_NAME';
-            await bot.sendMessage(chatId, 'Как я могу к тебе обращаться?', { reply_markup: { remove_keyboard: true } });
-            break;
-        case 'Хочу узнать подробнее':
-            await bot.sendMessage(chatId, messages.details);
-            break;
-        case 'Не хочу быть курьером':
-            await bot.sendMessage(chatId, 'Спасибо за интерес! Если передумаешь, всегда можешь вернуться.', keyboards.back);
-            cleanupUserData(chatId);
-            break;
+async function handleAgeState(chatId, age) {
+    const ageNum = parseInt(age);
+    if (isNaN(ageNum)) {
+        await bot.sendMessage(chatId, 'Пожалуйста, введите возраст цифрами.', { reply_markup: { remove_keyboard: true } });
+        return;
     }
-}
 
-async function handleNameState(chatId, name) {
-    userData[chatId].name = name;
-    userStates[chatId] = 'WAITING_AGE';
-    await bot.sendMessage(chatId, `Сколько тебе лет, ${name}?`, { reply_markup: { remove_keyboard: true } });
-}
+    if (ageNum < 18) {
+        await bot.sendMessage(chatId, messages.ageRestriction, keyboards.back);
+        cleanupUserData(chatId);
+        return;
+    }
 
-async function handlePhoneState(chatId, phone) {
-    userData[chatId].phone = phone;
-    await bot.sendMessage(GROUP_CHAT_ID, `Новая заявка: Имя: ${userData[chatId].name}, Телефон: ${phone}`);
-    await bot.sendMessage(chatId, messages.final, keyboards.back);
-    cleanupUserData(chatId);
+    userData[chatId].age = ageNum;
+    userStates[chatId] = 'WAITING_CITIZENSHIP';
+    await bot.sendMessage(chatId, 'Какое у тебя гражданство?', keyboards.citizenship);
 }

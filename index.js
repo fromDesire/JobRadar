@@ -59,7 +59,7 @@ const keyboards = {
         reply_markup: { keyboard: [['Да'], ['Нет']], resize_keyboard: true }
     },
     weight: {
-        reply_markup: { keyboard: [['Конечно'], ['Не думаю']], resize_keyboard: true }
+        reply_markup: { keyboard: [['Справлюсь '], ['Не думаю']], resize_keyboard: true }
     },
     continue: {
         reply_markup: { keyboard: [['Продолжим'], ['Вернуться в начало ↩️']], resize_keyboard: true }
@@ -144,7 +144,6 @@ async function handleAgeState(chatId, age) {
     userStates[chatId] = 'WAITING_CITIZENSHIP';
     await bot.sendMessage(chatId, 'Какое у тебя гражданство?', keyboards.citizenship);
 }
-
 async function handleCitizenshipState(chatId, citizenship) {
     userData[chatId].citizenship = citizenship;
     userStates[chatId] = 'WAITING_BIKE';
@@ -154,17 +153,18 @@ async function handleCitizenshipState(chatId, citizenship) {
 async function handleBikeState(chatId, bike) {
     userData[chatId].canRideBike = bike;
     if (bike === 'Да') {
+        // Если пользователь умеет кататься на велосипеде, спрашиваем про вес заказов
         userStates[chatId] = 'WAITING_WEIGHT';
         await bot.sendMessage(chatId, 'Иногда заказ, который везёт курьер, может весить 15-20 кг. Справишься? 🏋️', keyboards.weight);
     } else {
-        // Если пользователь не умеет кататься на велосипеде, предлагаем стать пешим курьером
+        // Если пользователь не умеет кататься на велосипеде, спрашиваем, хочет ли он стать пешим курьером
         userStates[chatId] = 'WAITING_WALK_COURIER';
         await bot.sendMessage(chatId, 'Иногда есть потребность в пеших курьерах. Если тебе это интересно, продолжим. ✅', keyboards.weight);
     }
 }
 
 async function handleWeightState(chatId, weightResponse) {
-    if (weightResponse === 'Конечно') {
+    if (weightResponse === 'Справлюсь 🤝') {
         userStates[chatId] = 'WAITING_PHONE';
         await bot.sendMessage(chatId, messages.final, keyboards.remove);
     } else if (weightResponse === 'Не думаю') {
@@ -174,10 +174,12 @@ async function handleWeightState(chatId, weightResponse) {
 
 async function handleWalkCourierState(chatId, walkResponse) {
     if (walkResponse === 'Конечно') {
+        // Если пользователь согласен стать пешим курьером, переходим к сбору телефона
         userStates[chatId] = 'WAITING_PHONE';
         await bot.sendMessage(chatId, messages.final, keyboards.remove);
     } else {
-        await bot.sendMessage(chatId, 'Буду рад видеть тебя снова, если решишь стать пешим курьером!', keyboards.back);
+        // Если пользователь отказывается, возвращаем его к началу
+        await bot.sendMessage(chatId, 'Буду рад видеть тебя снова, если решишь стать курьером! 🙌', keyboards.back);
         cleanupUserData(chatId);
     }
 }

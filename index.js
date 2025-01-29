@@ -164,7 +164,7 @@ async function handleBikeState(chatId, bike) {
 async function handleWeightState(chatId, weightResponse) {
     if (weightResponse === 'Конечно') {
         userStates[chatId] = 'WAITING_PHONE';  // Переход к следующему этапу
-        await bot.sendMessage(chatId, 'Отлично! Теперь оставь свой номер телефона, чтобы HR-менеджер мог связаться с тобой. 📞', keyboards.remove);
+        await bot.sendMessage(chatId, messages.final, keyboards.remove);
     } else if (weightResponse === 'Не думаю') {
         await bot.sendMessage(chatId, 'Такие тяжёлые заказы — редкое явление. В основном, не более 10% от общего числа. Однако все курьеры-партнёры периодически их доставляют.\n\nЕсли будешь готов, мы можем всегда начать сначала.', keyboards.back);
         cleanupUserData(chatId);  // Очищаем данные и возвращаемся в начало

@@ -1,3 +1,54 @@
+require("dotenv").config();
+const TelegramBot = require("node-telegram-bot-api");
+const BOT_TOKEN = process.env.BOT_TOKEN;
+const GROUP_CHAT_ID = process.env.GROUP_CHAT_ID;
+
+const bot = new TelegramBot(BOT_TOKEN, { polling: true });
+
+// Временное хранение состояния пользователей в памяти
+const userStates = {};
+const userData = {};
+const userTimers = {};
+
+// Константа времени ожидания (2 часа в миллисекундах)
+const TIMEOUT_DURATION = 2 * 60 * 60 * 1000;
+
+// Функция для очистки данных пользователя
+function cleanupUserData(chatId) {
+    delete userStates[chatId];
+    delete userData[chatId];
+    if (userTimers[chatId]) {
+        clearTimeout(userTimers[chatId]);
+        delete userTimers[chatId];
+    }
+}
+
+// Функция для установки таймера неактивности
+function setInactivityTimer(chatId) {
+    if (userTimers[chatId]) {
+        clearTimeout(userTimers[chatId]);
+    }
+
+    userTimers[chatId] = setTimeout(async () => {
+        if (userStates[chatId]) {
+            await bot.sendMessage(chatId,
+                'Продолжим заполнение анкеты?',
+                {
+                    reply_markup: {
+                        keyboard: [
+                            ['Продолжим'],
+                            ['Вернуться в начало ↩️']
+                        ],
+                        resize_keyboard: true
+                    }
+                }
+            );
+            // Очищаем данные после таймаута
+            cleanupUserData(chatId);
+        }
+    }, TIMEOUT_DURATION);
+}
+
 const keyboards = {
     start: {
         reply_markup: {

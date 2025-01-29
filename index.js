@@ -100,7 +100,6 @@ bot.on('message', async (msg) => {
 
     const handlers = {
         'START': () => handleStartState(chatId, text),
-        'DETAILS': () => handleDetailsState(chatId, text),
         'WAITING_NAME': () => handleNameState(chatId, text),
         'WAITING_AGE': () => handleAgeState(chatId, text),
         'WAITING_CITIZENSHIP': () => handleCitizenshipState(chatId, text),
@@ -119,18 +118,7 @@ async function handleStartState(chatId, text) {
         userStates[chatId] = 'WAITING_NAME';
         await bot.sendMessage(chatId, 'Как я могу к тебе обращаться?', keyboards.remove);
     } else if (text === 'Хочу узнать подробнее') {
-        userStates[chatId] = 'DETAILS';  // Переводим пользователя в состояние подробностей
         await bot.sendMessage(chatId, messages.details, keyboards.details);
-    } else if (text === 'Не хочу быть курьером') {
-        await bot.sendMessage(chatId, 'Спасибо за интерес! Если передумаешь, всегда можешь вернуться.', keyboards.back);
-        cleanupUserData(chatId);
-    }
-}
-
-async function handleDetailsState(chatId, text) {
-    if (text === 'Продолжим') {
-        userStates[chatId] = 'WAITING_NAME';
-        await bot.sendMessage(chatId, 'Как я могу к тебе обращаться?', keyboards.remove);
     } else if (text === 'Не хочу быть курьером') {
         await bot.sendMessage(chatId, 'Спасибо за интерес! Если передумаешь, всегда можешь вернуться.', keyboards.back);
         cleanupUserData(chatId);
@@ -140,7 +128,7 @@ async function handleDetailsState(chatId, text) {
 async function handleNameState(chatId, name) {
     userData[chatId] = { name };
     userStates[chatId] = 'WAITING_AGE';
-    await bot.sendMessage(chatId, Сколько тебе лет, ${name}?, keyboards.remove);
+    await bot.sendMessage(chatId, `Сколько тебе лет, ${name}?`, keyboards.remove);
 }
 
 async function handleAgeState(chatId, age) {
@@ -170,29 +158,31 @@ async function handleBikeState(chatId, bike) {
         await bot.sendMessage(chatId, 'Иногда заказ, который везёт курьер, может весить 15-20 кг. Справишься? 🏋️', keyboards.weight);
     } else {
         userStates[chatId] = 'WAITING_WALK_COURIER';
-        await bot.sendMessage(chatId, 'Иногда есть потребность в пеших курьерах. Если тебе это интересно, продолжим. ✅', keyboards.weight);
-    }
-}
-
-async function handleWalkCourierState(chatId, walkCourierResponse) {
-    if (walkCourierResponse === 'Конечно') {
-        userStates[chatId] = 'WAITING_PHONE';  // Переход к запросу номера телефона
-        await bot.sendMessage(chatId, messages.final, keyboards.remove);
-    } else if (walkCourierResponse === 'Не думаю') {
-        await bot.sendMessage(chatId, 'Такие тяжёлые заказы — редкое явление. В основном, не более 10% от общего числа. Однако все курьеры-партнёры периодически их доставляют.\n\nЕсли будешь готов, мы можем всегда начать сначала.', keyboards.back);
-        cleanupUserData(chatId);
-        userStates[chatId] = 'START';
-        await bot.sendMessage(chatId, messages.start, keyboards.start);
+        await bot.sendMessage(chatId, 'Иногда есть потребность в пеших курьерах. Если тебе это интересно, продолжим. ✅', keyboards.weight);  // Ожидаем ответ о пешем курьере
     }
 }
 
 async function handleWeightState(chatId, weightResponse) {
     if (weightResponse === 'Конечно') {
-        userStates[chatId] = 'WAITING_PHONE';  // Переход к запросу номера телефона
+        userStates[chatId] = 'WAITING_PHONE';  // Переход к следующему этапу
         await bot.sendMessage(chatId, messages.final, keyboards.remove);
     } else if (weightResponse === 'Не думаю') {
         await bot.sendMessage(chatId, 'Такие тяжёлые заказы — редкое явление. В основном, не более 10% от общего числа. Однако все курьеры-партнёры периодически их доставляют.\n\nЕсли будешь готов, мы можем всегда начать сначала.', keyboards.back);
-        cleanupUserData(chatId);
+        cleanupUserData(chatId);  // Очищаем данные и возвращаемся в начало
+        userStates[chatId] = 'START';  // Возвращаемся в начальное состояние
+        await bot.sendMessage(chatId, messages.start, keyboards.start);
+    }
+}
+
+// Новый обработчик для вопроса о пеших курьерах
+async function handleWalkCourierState(chatId, walkCourierResponse) {
+    if (walkCourierResponse === 'Конечно') {
+        userStates[chatId] = 'WAITING_PHONE';  // Переход к запросу номера телефона
+        await bot.sendMessage(chatId, messages.final, keyboards.remove);
+    } else {
+        // Если не заинтересован в пеших курьерах, возвращаемся в начало
+        await bot.sendMessage(chatId, 'Если передумаешь, всегда можешь вернуться. Начнём с начала анкеты.', keyboards.back);
+        cleanupUserData(chatId);  // Очищаем данные и возвращаемся в начало
         userStates[chatId] = 'START';
         await bot.sendMessage(chatId, messages.start, keyboards.start);
     }
@@ -200,7 +190,7 @@ async function handleWeightState(chatId, weightResponse) {
 
 async function handlePhoneState(chatId, phone) {
     userData[chatId].phone = phone;
-    await bot.sendMessage(GROUP_CHAT_ID, Новая заявка: ${JSON.stringify(userData[chatId])});
+    await bot.sendMessage(GROUP_CHAT_ID, `Новая заявка: ${JSON.stringify(userData[chatId])}`);
     await bot.sendMessage(chatId, messages.final, keyboards.back);
     cleanupUserData(chatId);
 }

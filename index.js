@@ -12,6 +12,7 @@ const userTimers = {};
 
 const TIMEOUT_DURATION = 2 * 60 * 60 * 1000; // 2 часа
 
+// Очистка данных пользователя
 function cleanupUserData(chatId) {
     delete userStates[chatId];
     delete userData[chatId];
@@ -21,6 +22,7 @@ function cleanupUserData(chatId) {
     }
 }
 
+// Установка таймера бездействия
 function setInactivityTimer(chatId) {
     if (userTimers[chatId]) {
         clearTimeout(userTimers[chatId]);
@@ -76,11 +78,12 @@ const messages = {
     walkCourier: 'Иногда есть потребность в пеших курьерах. Если тебе это интересно, продолжим. ✅',
     weightWarning: 'Иногда заказ, который везёт курьер, может весить 15-20 кг. Справишься? 🏋️',
     final: 'Отлично! Думаю, ты подходишь! 🔥\n\nТеперь оставь свой номер телефона, чтобы HR-менеджер мог связаться с тобой. 📞\n\nОн поможет подобрать для тебя удобный центр формирования заказов, расскажет, что делать дальше, и ответит на все вопросы.\n\nНе волнуйся, я не храню введённые данные и не передаю их 3-м лицам. 🔐',
-    thankYou: 'Спасибо! HR-менеджер свяжется с тобой в ближайшее время. ✅\n\nЗаявки обрабатываются менеджером с 12:00 до 19:00 ежедневно. 🕐\n\nБуду рад видеть тебя в команде курьеров-партнёров Самоката! До новых встреч! 👋'
+    thankYou: 'Спасибо! HR-менеджер свяжется с тобой в ближайшее время. ✅\nЗаявки обрабатываются менеджером с 12:00 до 19:00 ежедневно. 🕐\nБуду рад видеть тебя в команде курьеров-партнёров Самоката! До новых встреч! 👋'
 };
 
 bot.onText(/\/start/, async (msg) => {
     const chatId = msg.chat.id;
+    console.log('Received /start command from chat:', chatId); // Логируем команду
     cleanupUserData(chatId);
     userStates[chatId] = 'START';
     setInactivityTimer(chatId);
@@ -90,6 +93,8 @@ bot.onText(/\/start/, async (msg) => {
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text;
+    console.log('Received message:', text); // Логируем полученное сообщение
+
     setInactivityTimer(chatId);
 
     if (text === 'Вернуться в начало ↩️') {
@@ -120,7 +125,7 @@ async function handleStartState(chatId, text) {
         userStates[chatId] = 'WAITING_NAME';
         await bot.sendMessage(chatId, 'Как я могу к тебе обращаться?', keyboards.remove);
     } else if (text === 'Хочу узнать подробнее') {
-        userStates[chatId] = 'DETAILS';
+        userStates[chatId] = 'DETAILS';  // Переводим пользователя в состояние подробностей
         await bot.sendMessage(chatId, messages.details, keyboards.details);
     } else if (text === 'Не хочу быть курьером') {
         await bot.sendMessage(chatId, 'Спасибо за интерес! Если передумаешь, всегда можешь вернуться.', keyboards.back);
@@ -134,53 +139,4 @@ async function handleDetailsState(chatId, text) {
         await bot.sendMessage(chatId, 'Как я могу к тебе обращаться?', keyboards.remove);
     } else if (text === 'Не хочу быть курьером') {
         await bot.sendMessage(chatId, 'Спасибо за интерес! Если передумаешь, всегда можешь вернуться.', keyboards.back);
-        cleanupUserData(chatId);
-    }
-}
-
-async function handleNameState(chatId, name) {
-    userData[chatId] = { name };
-    userStates[chatId] = 'WAITING_AGE';
-    await bot.sendMessage(chatId, `Сколько тебе лет, ${name}?`, keyboards.remove);
-}
-
-async function handleAgeState(chatId, age) {
-    if (isNaN(parseInt(age))) {
-        await bot.sendMessage(chatId, 'Введите возраст цифрами.', keyboards.remove);
-        return;
-    }
-    if (parseInt(age) < 18) {
-        await bot.sendMessage(chatId, messages.ageRestriction, keyboards.back);
-        cleanupUserData(chatId);
-        return;
-    }
-    userStates[chatId] = 'WAITING_CITIZENSHIP';
-    await bot.sendMessage(chatId, 'Какое у тебя гражданство?', keyboards.citizenship);
-}
-
-async function handleCitizenshipState(chatId, citizenship) {
-    userData[chatId].citizenship = citizenship;
-    userStates[chatId] = 'WAITING_BIKE';
-    await bot.sendMessage(chatId, 'Умеешь кататься на велосипеде? 🚴', keyboards.bike);
-}
-
-async function handleBikeState(chatId, bike) {
-    userData[chatId].canRideBike = bike;
-    if (bike === 'Да') {
-        userStates[chatId] = 'WAITING_WEIGHT';
-        await bot.sendMessage(chatId, 'Иногда заказ, который везёт курьер, может весить 15-20 кг. Справишься? 🏋️', keyboards.weight);
-    } else {
-        userStates[chatId] = 'WAITING_WALK_COURIER';
-        await bot.sendMessage(chatId, 'Иногда есть потребность в пеших курьерах. Если тебе это интересно, продолжим. ✅', keyboards.weight);
-    }
-}
-
-async function handleWalkCourierState(chatId, walkCourierResponse) {
-    if (walkCourierResponse === 'Конечно') {
-        userStates[chatId] = 'WAITING_WEIGHT';
-        await bot.sendMessage(chatId, 'Иногда заказ, который везёт курьер, может весить 15-20 кг. Справишься? 🏋️', keyboards.weight);
-    } else if (walkCourierResponse === 'Не думаю') {
-        await bot.sendMessage(chatId, 'Такие тяжёлые заказы — редкое явление. В основном, не более 10% от общего числа. Однако все курьеры-партнёры периодически их доставляют.\n\nЕсли будешь готов, мы можем всегда начать сначала.', keyboards.back);
-        cleanupUserData(chatId);
-        userStates[chatId] = 'START';
-        await bot.sendMessage(chatId, messages
+        cl

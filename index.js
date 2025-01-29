@@ -5,7 +5,7 @@ const GROUP_CHAT_ID = process.env.GROUP_CHAT_ID;
 
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
-// Временное хранение состояния пользователей //
+// Временное хранение состояния пользователей
 const userStates = {};
 const userData = {};
 const userTimers = {};
@@ -168,25 +168,24 @@ async function handleWeightState(chatId, weightResponse) {
         userStates[chatId] = 'WAITING_PHONE';
         await bot.sendMessage(chatId, messages.final, keyboards.remove);
     } else if (weightResponse === 'Не думаю') {
-        await bot.sendMessage(chatId, 'Такие тяжёлые заказы — редкое явление. В основном, не более 10% от общего числа. Однако все курьеры-партнёры периодически их доставляют.\n\nЕсли будешь готов, мы можем всегда начать сначала.', keyboards.back);
-        cleanupUserData(chatId);
-        userStates[chatId] = 'START';
-        await bot.sendMessage(chatId, messages.start, keyboards.start);
+        await bot.sendMessage(chatId, 'Такие тяжёлые заказы — редкое явление. Если это тебя беспокоит, мы можем это обсудить позже.', keyboards.remove);
     }
 }
 
-async function handleWalkCourierState(chatId, walkCourierResponse) {
-    if (walkCourierResponse === 'Продолжим') {
-        // Если пользователь согласился быть пешим курьером, спрашиваем о тяжёлых заказах
-        userStates[chatId] = 'WAITING_WEIGHT';
-        await bot.sendMessage(chatId, 'Иногда заказ, который везёт курьер, может весить 15-20 кг. Справишься? 🏋️', keyboards.weight);
+async function handleWalkCourierState(chatId, walkResponse) {
+    if (walkResponse === 'Конечно') {
+        userStates[chatId] = 'WAITING_PHONE';
+        await bot.sendMessage(chatId, messages.final, keyboards.remove);
     } else {
-        // Если пользователь не согласен, возвращаем в начало анкеты
-        await bot.sendMessage(chatId, 'Если передумаешь, всегда можешь вернуться. Начнём с начала анкеты.', keyboards.back);
+        await bot.sendMessage(chatId, 'Буду рад видеть тебя снова, если решишь стать пешим курьером!', keyboards.back);
         cleanupUserData(chatId);
-        userStates[chatId] = 'START';
-        await bot.sendMessage(chatId, messages.start, keyboards.start);
     }
+}
+
+async function handlePhoneState(chatId, phone) {
+    userData[chatId].phone = phone;
+    await bot.sendMessage(chatId, 'Спасибо! Мы свяжемся с тобой для дальнейших инструкций. 📞', keyboards.remove);
+    cleanupUserData(chatId);
 }
 
 async function handlePhoneState(chatId, phone) {

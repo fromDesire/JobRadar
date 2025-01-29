@@ -256,6 +256,7 @@ async function handleWeightState(chatId, canCarryWeight) {
     );
 }
 
+
 async function handlePhoneState(chatId, phone) {
     userData[chatId].phone = phone;
 

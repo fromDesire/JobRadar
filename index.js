@@ -6,7 +6,7 @@ const GROUP_CHAT_ID = process.env.GROUP_CHAT_ID;
 
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
-// Временное хранение состояния пользователей // 
+// Временное хранение состояния пользователей //
 const userStates = {};
 const userData = {};
 const userTimers = {};
@@ -158,6 +158,7 @@ async function handleBikeState(chatId, bike) {
         userStates[chatId] = 'WAITING_WEIGHT';
         await bot.sendMessage(chatId, 'Иногда заказ, который везёт курьер, может весить 15-20 кг. Справишься? 🏋️', keyboards.weight);
     } else {
+        // Если пользователь не умеет кататься на велосипеде, предлагаем стать пешим курьером
         userStates[chatId] = 'WAITING_WALK_COURIER';
         await bot.sendMessage(chatId, 'Иногда есть потребность в пеших курьерах. Если тебе это интересно, продолжим. ✅', keyboards.weight);
     }
@@ -177,15 +178,18 @@ async function handleWeightState(chatId, weightResponse) {
 
 async function handleWalkCourierState(chatId, walkCourierResponse) {
     if (walkCourierResponse === 'Продолжим') {
+        // Если пользователь соглашается быть пешим курьером, спрашиваем о тяжелых заказах
         userStates[chatId] = 'WAITING_WEIGHT';
-        await bot.sendMessage(chatId, messages.final, keyboards.remove);
+        await bot.sendMessage(chatId, 'Иногда заказ, который везёт курьер, может весить 15-20 кг. Справишься? 🏋️', keyboards.weight);
     } else {
+        // Если пользователь не заинтересован, вернуться в начало
         await bot.sendMessage(chatId, 'Если передумаешь, всегда можешь вернуться. Начнём с начала анкеты.', keyboards.back);
         cleanupUserData(chatId);
         userStates[chatId] = 'START';
         await bot.sendMessage(chatId, messages.start, keyboards.start);
     }
 }
+
 
 async function handlePhoneState(chatId, phone) {
     userData[chatId].phone = phone;

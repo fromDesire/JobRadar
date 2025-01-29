@@ -158,31 +158,29 @@ async function handleBikeState(chatId, bike) {
         await bot.sendMessage(chatId, 'Иногда заказ, который везёт курьер, может весить 15-20 кг. Справишься? 🏋️', keyboards.weight);
     } else {
         userStates[chatId] = 'WAITING_WALK_COURIER';
-        await bot.sendMessage(chatId, 'Иногда есть потребность в пеших курьерах. Если тебе это интересно, продолжим. ✅', keyboards.weight);  // Ожидаем ответ о пешем курьере
+        await bot.sendMessage(chatId, 'Иногда есть потребность в пеших курьерах. Если тебе это интересно, продолжим. ✅', keyboards.weight);
     }
 }
 
 async function handleWeightState(chatId, weightResponse) {
     if (weightResponse === 'Конечно') {
-        userStates[chatId] = 'WAITING_PHONE';  // Переход к следующему этапу
+        userStates[chatId] = 'WAITING_PHONE';
         await bot.sendMessage(chatId, messages.final, keyboards.remove);
     } else if (weightResponse === 'Не думаю') {
         await bot.sendMessage(chatId, 'Такие тяжёлые заказы — редкое явление. В основном, не более 10% от общего числа. Однако все курьеры-партнёры периодически их доставляют.\n\nЕсли будешь готов, мы можем всегда начать сначала.', keyboards.back);
-        cleanupUserData(chatId);  // Очищаем данные и возвращаемся в начало
-        userStates[chatId] = 'START';  // Возвращаемся в начальное состояние
+        cleanupUserData(chatId);
+        userStates[chatId] = 'START';
         await bot.sendMessage(chatId, messages.start, keyboards.start);
     }
 }
 
-// Новый обработчик для вопроса о пеших курьерах
 async function handleWalkCourierState(chatId, walkCourierResponse) {
-    if (walkCourierResponse === 'Конечно') {
-        userStates[chatId] = 'WAITING_PHONE';  // Переход к запросу номера телефона
+    if (walkCourierResponse === 'Продолжим') {
+        userStates[chatId] = 'WAITING_WEIGHT';
         await bot.sendMessage(chatId, messages.final, keyboards.remove);
     } else {
-        // Если не заинтересован в пеших курьерах, возвращаемся в начало
         await bot.sendMessage(chatId, 'Если передумаешь, всегда можешь вернуться. Начнём с начала анкеты.', keyboards.back);
-        cleanupUserData(chatId);  // Очищаем данные и возвращаемся в начало
+        cleanupUserData(chatId);
         userStates[chatId] = 'START';
         await bot.sendMessage(chatId, messages.start, keyboards.start);
     }
@@ -190,7 +188,17 @@ async function handleWalkCourierState(chatId, walkCourierResponse) {
 
 async function handlePhoneState(chatId, phone) {
     userData[chatId].phone = phone;
-    await bot.sendMessage(GROUP_CHAT_ID, `Новая заявка: ${JSON.stringify(userData[chatId])}`);
+    const summary =
+        `Новая заявка:\n
+        Имя: ${userData[chatId].name}\n
+        Возраст: ${userData[chatId].age}\n
+        Гражданство: ${userData[chatId].citizenship}\n
+        Велосипед: ${userData[chatId].canRideBike}\n
+        Вес заказов: ${userData[chatId].canCarryWeight}\n
+        Телефон: ${userData[chatId].phone}\n
+        Профиль: ${chatId}`;
+
+    await bot.sendMessage(GROUP_CHAT_ID, summary);
     await bot.sendMessage(chatId, messages.final, keyboards.back);
     cleanupUserData(chatId);
 }

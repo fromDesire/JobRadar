@@ -59,7 +59,7 @@ const keyboards = {
         reply_markup: { keyboard: [['Да'], ['Нет']], resize_keyboard: true }
     },
     weight: {
-        reply_markup: { keyboard: [['Справлюсь '], ['Не думаю']], resize_keyboard: true }
+        reply_markup: { keyboard: [['Справлюсь'], ['Не думаю']], resize_keyboard: true }
     },
     continue: {
         reply_markup: { keyboard: [['Продолжим'], ['Вернуться в начало ↩️']], resize_keyboard: true }
@@ -164,7 +164,7 @@ async function handleBikeState(chatId, bike) {
 }
 
 async function handleWeightState(chatId, weightResponse) {
-    if (weightResponse === 'Справлюсь 🤝') {
+    if (weightResponse === 'Справлюсь') {
         userStates[chatId] = 'WAITING_PHONE';
         await bot.sendMessage(chatId, messages.final, keyboards.remove);
     } else if (weightResponse === 'Не думаю') {
@@ -173,7 +173,7 @@ async function handleWeightState(chatId, weightResponse) {
 }
 
 async function handleWalkCourierState(chatId, walkResponse) {
-    if (walkResponse === 'Справлюсь 🤝') {
+    if (walkResponse === 'Справлюсь') {
         // Если пользователь согласен стать пешим курьером, переходим к сбору телефона
         userStates[chatId] = 'WAITING_PHONE';
         await bot.sendMessage(chatId, messages.final, keyboards.remove);

@@ -135,11 +135,13 @@ async function handleAgeState(chatId, age) {
         await bot.sendMessage(chatId, 'Введите возраст цифрами.', keyboards.phone);
         return;
     }
-    if (parseInt(age) < 18) {
+    const parsedAge = parseInt(age);
+    if (parsedAge < 18) {
         await bot.sendMessage(chatId, messages.ageRestriction, keyboards.back);
         cleanupUserData(chatId);
         return;
     }
+    userData[chatId].age = parsedAge; // Сохраняем возраст в userData
     userStates[chatId] = 'WAITING_CITIZENSHIP';
     await bot.sendMessage(chatId, 'Какое у тебя гражданство?', keyboards.citizenship);
 }
@@ -196,7 +198,7 @@ async function handlePhoneState(chatId, phone) {
         Гражданство: ${userData[chatId].citizenship}\n
         Велосипед: ${userData[chatId].canRideBike}\n
         Телефон: ${userData[chatId].phone}\n
-        Профиль: ${chatId}`;
+        Профиль: @${chatId}`; // Добавляем @ перед ID пользователя
 
     await bot.sendMessage(GROUP_CHAT_ID, summary);
     await bot.sendMessage(chatId, 'Спасибо! Мы свяжемся с тобой для дальнейших инструкций. 📞', keyboards.back);

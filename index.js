@@ -173,7 +173,7 @@ async function handleWeightState(chatId, weightResponse) {
 }
 
 async function handleWalkCourierState(chatId, walkResponse) {
-    if (walkResponse === 'Конечно') {
+    if (walkResponse === 'Справлюсь 🤝') {
         // Если пользователь согласен стать пешим курьером, переходим к сбору телефона
         userStates[chatId] = 'WAITING_PHONE';
         await bot.sendMessage(chatId, messages.final, keyboards.remove);

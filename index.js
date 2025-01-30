@@ -205,7 +205,7 @@ async function handleWalkCourierState(chatId, walkResponse) {
 }
 
 async function handlePhoneState(chatId, phone) {
-    const phoneRegex = /^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s./0-9]*$/;
+    const phoneRegex = /^\+?[1-9]\d{1,14}$/; // Улучшенная версия регекса для телефона
     if (!phoneRegex.test(phone)) {
         await bot.sendMessage(chatId, '_Пожалуйста, введите корректный номер телефона._', { parse_mode: 'MarkdownV2', ...keyboards.phone });
         return;
@@ -227,6 +227,11 @@ async function handlePhoneState(chatId, phone) {
         `• *Профиль:* ${escapeMarkdownV2(username)} \(ID: ${chatId}\)`;
 
     try {
+        if (!GROUP_CHAT_ID) {
+            console.error("GROUP_CHAT_ID не задано");
+            return;
+        }
+
         // Отправляем заявку в группу
         await bot.sendMessage(GROUP_CHAT_ID, summary, { parse_mode: 'MarkdownV2' });
 

@@ -205,7 +205,6 @@ async function handleWalkCourierState(chatId, walkResponse) {
         cleanupUserData(chatId);
     }
 }
-
 async function handlePhoneState(chatId, phone) {
     const phoneRegex = /^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s./0-9]*$/;
     if (!phoneRegex.test(phone)) {
@@ -214,6 +213,11 @@ async function handlePhoneState(chatId, phone) {
     }
 
     userData[chatId].phone = phone;
+
+    // Получаем username пользователя
+    const user = await bot.getChat(chatId);
+    const username = user.username ? `@${user.username}` : 'Не указан';
+
     const summary =
         `Новая заявка:\n
         Имя: ${userData[chatId].name}\n
@@ -221,9 +225,15 @@ async function handlePhoneState(chatId, phone) {
         Гражданство: ${userData[chatId].citizenship}\n
         Велосипед: ${userData[chatId].canRideBike}\n
         Телефон: ${userData[chatId].phone}\n
-        Профиль: @${chatId}`; // Добавляем @ перед ID пользователя
+        Профиль: ${username} (ID: ${chatId})`; // Добавляем @username и ID пользователя
 
     await bot.sendMessage(GROUP_CHAT_ID, summary);
-    await bot.sendMessage(chatId, 'Спасибо! Мы свяжемся с тобой для дальнейших инструкций. 📞', keyboards.back);
+    await bot.sendMessage(chatId, '**Отлично! Думаю, ты подходишь!** 🔥\n\n
+
+Теперь оставь свой номер телефона, чтобы *HR-менеджер* мог связаться с тобой. 📞\n\n
+
+Он поможет подобрать для тебя удобный центр формирования заказов, расскажет, что делать дальше, и ответит на все вопросы.\n\n
+
+> Не волнуйся, я не храню введённые данные и не передаю их 3-м лицам. 🔐\n\nНе волнуйся, я не храню введённые данные и не передаю их 3-м лицам. 🔐', keyboards.back);
     cleanupUserData(chatId);
 }

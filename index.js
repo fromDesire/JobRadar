@@ -227,6 +227,8 @@ async function handlePhoneState(chatId, phone) {
         `Профиль: ${username} (ID: ${chatId})`;
 
     await bot.sendMessage(GROUP_CHAT_ID, summary);
-    await bot.sendMessage(chatId, messages.final, keyboards.back);
+    await bot.sendMessage(chatId, "Спасибо! HR-менеджер свяжется с тобой в ближайшее время. ✅\n\n" +
+    "Заявки обрабатываются менеджером с 12:00 до 19:00 ежедневно. 🕐\n\n" +
+    "Буду рад видеть тебя в команде курьеров-партнёров Самоката! До новых встреч! 👋\n\n", keyboards.back);
     cleanupUserData(chatId);
 }
